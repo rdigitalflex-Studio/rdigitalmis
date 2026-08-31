@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RK Flex MIS - Order Management</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,"Noto Sans Devanagari",sans-serif;background:#f4f7fb;color:#182230}
+header{background:#172554;color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}header small{opacity:.8}
+nav{display:flex;gap:7px;flex-wrap:wrap;padding:12px;background:#fff;border-bottom:1px solid #ddd;position:sticky;top:0;z-index:5}
+nav button,.btn{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;background:#e8eef8;color:#172554;font-weight:600}
+nav button.active,.btn.primary{background:#2563eb;color:#fff}.btn.success{background:#16a34a;color:#fff}.btn.danger{background:#dc2626;color:#fff}.btn.gray{background:#64748b;color:#fff}
+main{max-width:1400px;margin:auto;padding:18px}.page{display:none}.page.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 9px #0000000d}.card b{font-size:25px;display:block;margin-top:7px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}
+label{font-weight:600;font-size:14px;display:block;margin-bottom:5px}input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-size:15px}textarea{min-height:75px}
+.section{background:#fff;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 9px #0000000d}.section h2{margin:0 0 15px;font-size:19px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13px}th{background:#eff6ff}
+.badge{padding:4px 8px;border-radius:20px;background:#e0e7ff;font-size:12px}.due{color:#dc2626;font-weight:bold}.paid{color:#15803d;font-weight:bold}
+.ratebox{background:#f8fafc;border:1px dashed #94a3b8;padding:12px;border-radius:8px}.money{font-size:22px;font-weight:800;color:#166534}
+.search{max-width:350px;margin-bottom:12px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.cards,.grid,.grid2{grid-template-columns:1fr}main{padding:10px}header h1{font-size:19px}}
+@media print{nav,header,.no-print{display:none!important}.page{display:block!important}.section{box-shadow:none}.cards{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header><div><h1>RK FLEX MIS</h1><small>Flex Printing • Order • Dealer • Customer • Payment</small></div><div id="today"></div></header>
+<nav>
+<button class="active" onclick="showPage('dashboard',this)">Dashboard</button>
+<button onclick="showPage('orders',this)">Orders</button>
+<button onclick="showPage('neworder',this)">+ New Order</button>
+<button onclick="showPage('customers',this)">Customers</button>
+<button onclick="showPage('dealers',this)">Dealers</button>
+<button onclick="showPage('rates',this)">Rates</button>
+<button onclick="showPage('payments',this)">Payments</button>
+</nav>
+<main>
+<section id="dashboard" class="page active">
+<div class="cards">
+<div class="card">Total Orders<b id="dOrders">0</b></div><div class="card">Total Sales<b id="dSales">₹0</b></div>
+<div class="card">Received<b id="dReceived">₹0</b></div><div class="card">Outstanding<b class="due" id="dDue">₹0</b></div>
+</div>
+<div class="section" style="margin-top:15px"><h2>Recent Orders</h2><div id="recent"></div></div>
+</section>
+
+<section id="orders" class="page">
+<div class="section"><h2>All Orders</h2><input class="search" id="orderSearch" placeholder="Order no / customer / dealer search" oninput="renderOrders()"><div id="ordersTable"></div></div>
+</section>
+
+<section id="neworder" class="page">
+<div class="section">
+<h2 id="formTitle">New Flex Order</h2>
+<form id="orderForm" onsubmit="saveOrder(event)">
+<input type="hidden" id="editId">
+<div class="grid">
+<div><label>Order Type</label><select id="partyType" onchange="loadParty()"><option value="customer">Customer</option><option value="dealer">Dealer</option></select></div>
+<div><label>Customer / Dealer</label><select id="party" required></select></div>
+<div><label>Mobile</label><input id="mobile" readonly></div>
+<div><label>Order Date</label><input type="date" id="orderDate" required></div>
+<div><label>Material</label><select id="material"><option>Normal Flex</option><option>Star Flex</option><option>Vinyl Printing</option><option>Retro</option><option>Canvas</option><option>Backlit</option><option>Digital Printing</option><option>Sticker</option><option>Card Sheet</option></select></div>
+<div><label>Size Unit</label><select id="unit" onchange="calc()"><option value="ft">Feet</option><option value="in">Inch</option></select></div>
+<div><label>Width</label><input type="number" step="0.01" id="width" required oninput="calc()"></div>
+<div><label>Height</label><input type="number" step="0.01" id="height" required oninput="calc()"></div>
+<div><label>Quantity</label><input type="number" min="1" value="1" id="qty" required oninput="calc()"></div>
+<div><label>Frame Type</label><select id="frameType" onchange="calc()"><option value="none">No Frame</option><option value="iron">Iron Frame</option><option value="wood">Wooden Frame</option></select></div>
+<div><label>Printing Rate ₹/sq.ft</label><input type="number" step="0.01" id="printRate" oninput="calc()"></div>
+<div><label>Frame Rate ₹/sq.ft</label><input type="number" step="0.01" id="frameRate" oninput="calc()"></div>
+<div><label>Design Charge Type</label><select id="designType" onchange="calc()"><option value="fixed">Fixed / Order</option><option value="sqft">Per Sq.Ft</option></select></div>
+<div><label>Design Charge ₹</label><input type="number" step="0.01" value="0" id="designCharge" oninput="calc()"></div>
+<div><label>Finishing / Other ₹</label><input type="number" step="0.01" value="0" id="otherCharge" oninput="calc()"></div>
+<div><label>Advance / Received ₹</label><input type="number" step="0.01" value="0" id="advance" oninput="calc()"></div>
+<div><label>Payment Mode</label><select id="paymentMode"><option>Cash</option><option>UPI</option><option>Bank</option><option>Credit</option></select></div>
+<div><label>Status</label><select id="status"><option>New</option><option>Design</option><option>Printing</option><option>Finishing</option><option>Ready</option><option>Delivered</option></select></div>
+<div><label>Delivery Date</label><input type="date" id="deliveryDate"></div>
+<div class="full"><label>Design / Order Notes</label><textarea id="notes" placeholder="Design details, customer instructions..."></textarea></div>
+</div>
+<div class="ratebox" style="margin-top:15px">
+<div>Area: <b id="areaOut">0 sq.ft</b></div>
+<div style="margin-top:7px">Printing: ₹<span id="printOut">0</span> &nbsp; | &nbsp; Frame: ₹<span id="frameOut">0</span> &nbsp; | &nbsp; Design: ₹<span id="designOut">0</span> &nbsp; | &nbsp; Other: ₹<span id="otherOut">0</span></div>
+<div style="margin-top:10px">Grand Total: <span class="money" id="totalOut">₹0</span> &nbsp; | &nbsp; Due: <span class="money due" id="dueOut">₹0</span></div>
+</div>
+<div class="actions"><button class="btn primary" type="submit">Save Order</button><button class="btn gray" type="button" onclick="resetForm()">Reset</button></div>
+</form></div>
+</section>
+
+<section id="customers" class="page"><div class="section"><h2>Customers</h2><div class="grid2"><input id="cName" placeholder="Customer Name"><input id="cMobile" placeholder="Mobile"><button class="btn primary" onclick="addParty('customer')">Add Customer</button></div><br><div id="customersTable"></div></div></section>
+<section id="dealers" class="page"><div class="section"><h2>Dealers</h2><div class="grid2"><input id="dlName" placeholder="Dealer Name"><input id="dlMobile" placeholder="Mobile"><button class="btn primary" onclick="addParty('dealer')">Add Dealer</button></div><br><div id="dealersTable"></div></div></section>
+
+<section id="rates" class="page">
+<div class="section"><h2>Default Rates</h2><p>New order में party के अनुसार rates automatic भरने के लिए नीचे rates सेट करें।</p>
+<div class="grid"><div><label>Normal Flex ₹/sq.ft</label><input id="rNormal" type="number" value="18"></div><div><label>Star Flex ₹/sq.ft</label><input id="rStar" type="number" value="22"></div><div><label>Vinyl ₹/sq.ft</label><input id="rVinyl" type="number" value="35"></div><div><label>Retro ₹/sq.ft</label><input id="rRetro" type="number" value="30"></div><div><label>Canvas ₹/sq.ft</label><input id="rCanvas" type="number" value="45"></div><div><label>Backlit ₹/sq.ft</label><input id="rBacklit" type="number" value="50"></div><div><label>Iron Frame ₹/sq.ft</label><input id="rIron" type="number" value="35"></div><div><label>Wooden Frame ₹/sq.ft</label><input id="rWood" type="number" value="45"></div></div>
+<div class="actions"><button class="btn primary" onclick="saveRates()">Save Rates</button></div></div>
+<div class="section"><h2>Dealer-specific Rates</h2><p>हर dealer के लिए अलग printing/frame rate सेट कर सकते हैं।</p><div id="dealerRates"></div></div>
+</section>
+
+<section id="payments" class="page"><div class="section"><h2>Payment & Outstanding</h2><div id="paymentsTable"></div></div></section>
+</main>
+<script>
+const KEY='rkflex_mis_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{customers:[],dealers:[],orders:[],rates:{normal:18,star:22,vinyl:35,retro:30,canvas:45,backlit:50,iron:35,wood:45},dealerRates:{}};
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(db));refresh();}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function showPage(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');refresh();if(id==='neworder')loadParty()}
+function init(){
+document.getElementById('today').textContent=new Date().toLocaleDateString('hi-IN');
+document.getElementById('orderDate').value=new Date().toISOString().slice(0,10);
+loadRatesInputs();refresh();loadParty();calc();
+}
+function loadParty(){
+let type=document.getElementById('partyType').value, arr=db[type==='customer'?'customers':'dealers'], s=document.getElementById('party');s.innerHTML='<option value="">Select...</option>'+arr.map(x=>`<option value="${x.id}">${x.name} - ${x.mobile||''}</option>`).join('');
+s.onchange=()=>{let p=arr.find(x=>x.id===s.value);document.getElementById('mobile').value=p?.mobile||'';if(type==='dealer')applyDealerRates(p);calc()}
+}
+function applyDealerRates(p){let r=db.dealerRates[p?.id]||{};document.getElementById('printRate').value=r[document.getElementById('material').value]??'';if(document.getElementById('frameType').value==='iron')document.getElementById('frameRate').value=r.iron??db.rates.iron;else if(document.getElementById('frameType').value==='wood')document.getElementById('frameRate').value=r.wood??db.rates.wood}
+document.getElementById('material').addEventListener('change',()=>{let t=document.getElementById('partyType').value,p=db.dealers.find(x=>x.id===document.getElementById('party').value);if(t==='dealer'&&p)applyDealerRates(p);else setPrintRate();calc()});
+function setPrintRate(){let m=document.getElementById('material').value.toLowerCase();let map={ 'normal flex':'normal','star flex':'star','vinyl printing':'vinyl','retro':'retro','canvas':'canvas','backlit':'backlit'};document.getElementById('printRate').value=db.rates[map[m]]??''}
+document.getElementById('frameType').addEventListener('change',()=>{let v=document.getElementById('frameType').value;document.getElementById('frameRate').value=v==='iron'?db.rates.iron:v==='wood'?db.rates.wood:0;calc()});
+function calc(){
+let u=document.getElementById('unit').value,w=+document.getElementById('width').value||0,h=+document.getElementById('height').value||0,q=+document.getElementById('qty').value||0;
+let area=(u==='in'?w*h/144:w*h)*q, pr=+document.getElementById('printRate').value||0,fr=+document.getElementById('frameRate').value||0,dc=+document.getElementById('designCharge').value||0,oc=+document.getElementById('otherCharge').value||0;
+let printing=area*pr,frame=document.getElementById('frameType').value==='none'?0:area*fr,design=document.getElementById('designType').value==='sqft'?area*dc:dc,total=printing+frame+design+oc,adv=+document.getElementById('advance').value||0;
+document.getElementById('areaOut').textContent=area.toFixed(2)+' sq.ft';document.getElementById('printOut').textContent=printing.toFixed(2);document.getElementById('frameOut').textContent=frame.toFixed(2);document.getElementById('designOut').textContent=design.toFixed(2);document.getElementById('otherOut').textContent=oc.toFixed(2);document.getElementById('totalOut').textContent=money(total);document.getElementById('dueOut').textContent=money(Math.max(0,total-adv));
+}
+function saveOrder(e){
+e.preventDefault();let id=document.getElementById('editId').value||Date.now().toString(),old=db.orders.find(x=>x.id===id);
+let u=document.getElementById('unit').value,w=+width.value,h=+height.value,q=+qty.value,area=(u==='in'?w*h/144:w*h)*q,pr=+printRate.value||0,fr=+frameRate.value||0,dc=+designCharge.value||0,oc=+otherCharge.value||0,printing=area*pr,frame=frameType.value==='none'?0:area*fr,design=designType.value==='sqft'?area*dc:dc,total=printing+frame+design+oc,adv=+advance.value||0;
+let order={id,orderNo:old?.orderNo||'ORD-'+new Date().getFullYear()+'-'+String(db.orders.length+1).padStart(4,'0'),partyType:partyType.value,partyId:party.value,material:material.value,unit:u,width:w,height:h,qty:q,area,frameType:frameType.value,printRate:pr,frameRate:fr,printing,frame,design,designCharge:dc,designType:designType.value,other:oc,total,advance:adv,due:Math.max(0,total-adv),paymentMode:paymentMode.value,status:status.value,orderDate:orderDate.value,deliveryDate:deliveryDate.value,notes:notes.value};
+if(old)db.orders=db.orders.map(x=>x.id===id?order:x);else db.orders.unshift(order);saveDB();alert('Order saved: '+order.orderNo);resetForm();showPage('orders',document.querySelectorAll('nav button')[1])
+}
+function resetForm(){document.getElementById('orderForm').reset();editId.value='';formTitle.textContent='New Flex Order';orderDate.value=new Date().toISOString().slice(0,10);loadParty();calc()}
+function renderOrders(){
+let q=(document.getElementById('orderSearch')?.value||'').toLowerCase(), rows=db.orders.filter(o=>{let p=getParty(o);return (o.orderNo+' '+p.name+' '+o.status).toLowerCase().includes(q)});
+document.getElementById('ordersTable').innerHTML=`<table><tr><th>Order</th><th>Party</th><th>Size</th><th>Material</th><th>Total</th><th>Advance</th><th>Due</th><th>Status</th><th>Action</th></tr>${rows.map(o=>`<tr><td><b>${o.orderNo}</b><br>${o.orderDate}</td><td>${getParty(o).name}<br>${getParty(o).mobile||''}</td><td>${o.width} × ${o.height} ${o.unit}<br>${o.area.toFixed(2)} sq.ft</td><td>${o.material}<br>${o.frameType==='none'?'No Frame':o.frameType}</td><td>${money(o.total)}</td><td>${money(o.advance)}</td><td class="due">${money(o.due)}</td><td><span class="badge">${o.status}</span></td><td><button class="btn" onclick="editOrder('${o.id}')">Edit</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button> <button class="btn gray" onclick="printOrder('${o.id}')">Print</button></td></tr>`).join('')}</table>`
+}
+function getParty(o){return (o.partyType==='customer'?db.customers:db.dealers).find(x=>x.id===o.partyId)||{name:'Unknown',mobile:''}}
+function editOrder(id){let o=db.orders.find(x=>x.id===id);if(!o)return;showPage('neworder',document.querySelectorAll('nav button')[2]);editId.value=o.id;formTitle.textContent='Edit Order '+o.orderNo;partyType.value=o.partyType;loadParty();setTimeout(()=>{party.value=o.partyId;mobile.value=getParty(o).mobile||'';material.value=o.material;unit.value=o.unit;width.value=o.width;height.value=o.height;qty.value=o.qty;frameType.value=o.frameType;printRate.value=o.printRate;frameRate.value=o.frameRate;designType.value=o.designType;designCharge.value=o.designCharge;otherCharge.value=o.other;advance.value=o.advance;paymentMode.value=o.paymentMode;status.value=o.status;orderDate.value=o.orderDate;deliveryDate.value=o.deliveryDate;notes.value=o.notes;calc()},50)}
+function deleteOrder(id){if(confirm('Delete this order?')){db.orders=db.orders.filter(x=>x.id!==id);saveDB()}}
+function addParty(type){let n=document.getElementById(type==='customer'?'cName':'dlName').value.trim(),m=document.getElementById(type==='customer'?'cMobile':'dlMobile').value.trim();if(!n)return alert('Name required');let id=Date.now().toString();db[type==='customer'?'customers':'dealers'].push({id,name:n,mobile:m});saveDB();document.getElementById(type==='customer'?'cName':'dlName').value='';document.getElementById(type==='customer'?'cMobile':'dlMobile').value='';alert(type==='dealer'?'Dealer added':'Customer added')}
+function renderParties(type){let a=db[type+'s'];return `<table><tr><th>Name</th><th>Mobile</th><th>Orders</th><th>Action</th></tr>${a.map(p=>`<tr><td>${p.name}</td><td>${p.mobile||'-'}</td><td>${db.orders.filter(o=>o.partyId===p.id).length}</td><td><button class="btn danger" onclick="delParty('${type}','${p.id}')">Delete</button></td></tr>`).join('')}</table>`}
+function delParty(type,id){if(confirm('Delete?')){db[type+'s']=db[type+'s'].filter(x=>x.id!==id);saveDB()}}
+function loadRatesInputs(){let r=db.rates;[['rNormal','normal'],['rStar','star'],['rVinyl','vinyl'],['rRetro','retro'],['rCanvas','canvas'],['rBacklit','backlit'],['rIron','iron'],['rWood','wood']].forEach(x=>document.getElementById(x[0]).value=r[x[1]])}
+function saveRates(){let r=db.rates;[['rNormal','normal'],['rStar','star'],['rVinyl','vinyl'],['rRetro','retro'],['rCanvas','canvas'],['rBacklit','backlit'],['rIron','iron'],['rWood','wood']].forEach(x=>r[x[1]]=+document.getElementById(x[0]).value||0);saveDB();alert('Rates saved')}
+function renderDealerRates(){document.getElementById('dealerRates').innerHTML=db.dealers.length?`<table><tr><th>Dealer</th><th>Normal</th><th>Star</th><th>Vinyl</th><th>Iron</th><th>Wood</th><th>Save</th></tr>${db.dealers.map(d=>{let r=db.dealerRates[d.id]||{};return `<tr><td>${d.name}</td>${['Normal Flex','Star Flex','Vinyl Printing'].map(m=>`<td><input style="width:90px" id="dr_${d.id}_${m}" type="number" value="${r[m]??''}"></td>`).join('')}<td><input style="width:90px" id="dr_${d.id}_iron" type="number" value="${r.iron??db.rates.iron}"></td><td><input style="width:90px" id="dr_${d.id}_wood" type="number" value="${r.wood??db.rates.wood}"></td><td><button class="btn primary" onclick="saveDealerRate('${d.id}')">Save</button></td></tr>`}).join('')}</table>`:'<p>No dealers yet.</p>'}
+function saveDealerRate(id){db.dealerRates[id]={};['Normal Flex','Star Flex','Vinyl Printing'].forEach(m=>db.dealerRates[id][m]=+document.getElementById('dr_'+id+'_'+m).value||0);db.dealerRates[id].iron=+document.getElementById('dr_'+id+'_iron').value||0;db.dealerRates[id].wood=+document.getElementById('dr_'+id+'_wood').value||0;saveDB();alert('Dealer rate saved')}
+function renderPayments(){document.getElementById('paymentsTable').innerHTML=`<table><tr><th>Order</th><th>Party</th><th>Total</th><th>Received</th><th>Outstanding</th><th>Mode</th><th>Status</th></tr>${db.orders.map(o=>`<tr><td>${o.orderNo}</td><td>${getParty(o).name}</td><td>${money(o.total)}</td><td class="paid">${money(o.advance)}</td><td class="due">${money(o.due)}</td><td>${o.paymentMode}</td><td>${o.due<=0?'Paid':'Due'}</td></tr>`).join('')}</table>`}
+function printOrder(id){let o=db.orders.find(x=>x.id===id),p=getParty(o);let w=window.open('','_blank');w.document.write(`<html><head><title>${o.orderNo}</title><style>body{font-family:Arial;padding:30px}table{width:100%;border-collapse:collapse}td,th{padding:10px;border:1px solid #ccc;text-align:left}.right{text-align:right}</style></head><body><h1>RK FLEX</h1><h2>Order / Invoice: ${o.orderNo}</h2><p>Party: <b>${p.name}</b> &nbsp; Mobile: ${p.mobile||'-'}<br>Date: ${o.orderDate}</p><table><tr><th>Description</th><th>Details</th><th class="right">Amount</th></tr><tr><td>Printing</td><td>${o.material}, ${o.width} × ${o.height} ${o.unit}, ${o.area.toFixed(2)} sq.ft × ₹${o.printRate}</td><td class="right">${money(o.printing)}</td></tr><tr><td>Frame</td><td>${o.frameType==='none'?'No Frame':o.frameType+' × ₹'+o.frameRate}</td><td class="right">${money(o.frame)}</td></tr><tr><td>Design</td><td>${o.designType==='sqft'?'Per Sq.Ft':'Fixed'}</td><td class="right">${money(o.design)}</td></tr><tr><td>Other</td><td>-</td><td class="right">${money(o.other)}</td></tr><tr><th colspan="2">Grand Total</th><th class="right">${money(o.total)}</th></tr><tr><td colspan="2">Received</td><td class="right">${money(o.advance)}</td></tr><tr><th colspan="2">Outstanding</th><th class="right">${money(o.due)}</th></tr></table><p>Notes: ${o.notes||'-'}</p><script>window.print()<\/script></body></html>`);w.document.close()}
+function refresh(){
+document.getElementById('dOrders').textContent=db.orders.length;document.getElementById('dSales').textContent=money(db.orders.reduce((s,o)=>s+o.total,0));document.getElementById('dReceived').textContent=money(db.orders.reduce((s,o)=>s+o.advance,0));document.getElementById('dDue').textContent=money(db.orders.reduce((s,o)=>s+o.due,0));
+let rec=db.orders.slice(0,8);document.getElementById('recent').innerHTML=rec.length?`<table><tr><th>Order</th><th>Party</th><th>Total</th><th>Due</th><th>Status</th></tr>${rec.map(o=>`<tr><td>${o.orderNo}</td><td>${getParty(o).name}</td><td>${money(o.total)}</td><td class="due">${money(o.due)}</td><td>${o.status}</td></tr>`).join('')}</table>`:'No orders yet.';
+if(document.getElementById('ordersTable'))renderOrders();if(document.getElementById('customersTable'))document.getElementById('customersTable').innerHTML=renderParties('customer');if(document.getElementById('dealersTable'))document.getElementById('dealersTable').innerHTML=renderParties('dealer');if(document.getElementById('dealerRates'))renderDealerRates();if(document.getElementById('paymentsTable'))renderPayments()
+}
+init();
+</script>
+</body></html>
